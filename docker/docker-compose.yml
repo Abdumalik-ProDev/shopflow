@@ -36,6 +36,19 @@ services:
       db:
         condition: service_healthy
 
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../ml:/home/jovyan/ml
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+    depends_on:
+      mlflow:
+        condition: service_started
+
   backend:
     build:
       context: ..
