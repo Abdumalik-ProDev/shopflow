@@ -1,4 +1,4 @@
-"""SQLAlchemy metadata shared across modules."""
+"""Shared SQLAlchemy metadata with naming conventions."""
 
 from sqlalchemy import MetaData
 

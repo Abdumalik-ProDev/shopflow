@@ -1,6 +1,6 @@
-"""Reviews infrastructure __init__."""
+"""Reviews infrastructure package."""
 
 from shopflow.modules.reviews.infrastructure.persistence.models import Base, ReviewRow
-from shopflow.modules.reviews.infrastructure.repositories.review import SqlAlchemyReviewRepository
+from shopflow.modules.reviews.infrastructure.repositories import SqlAlchemyReviewRepository
 
 __all__ = ["Base", "ReviewRow", "SqlAlchemyReviewRepository"]

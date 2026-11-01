@@ -1,4 +1,4 @@
-"""Identity infrastructure persistence models."""
+"""Identity infrastructure ORM models."""
 
 from __future__ import annotations
 
@@ -31,6 +31,5 @@ class UserRow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-
 
 __all__ = ["Base", "UserRow"]

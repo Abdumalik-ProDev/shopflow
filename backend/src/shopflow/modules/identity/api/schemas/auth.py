@@ -1,4 +1,4 @@
-"""Identity API schemas (request/response contracts)."""
+"""Identity API request/response schemas."""
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -34,14 +34,4 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class ErrorResponse(BaseModel):
-    detail: str
-
-
-__all__ = [
-    "UserRegisterRequest",
-    "UserLoginRequest",
-    "UserResponse",
-    "TokenResponse",
-    "ErrorResponse",
-]
+__all__ = ["UserRegisterRequest", "UserLoginRequest", "UserResponse", "TokenResponse"]

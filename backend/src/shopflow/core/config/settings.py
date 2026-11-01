@@ -1,4 +1,4 @@
-"""Application configuration loaded from environment variables."""
+"""Application configuration from environment variables."""
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings
@@ -10,16 +10,18 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     DEBUG: bool = Field(default=False)
 
-    DATABASE_URL: str = Field(default="postgresql+asyncpg://shopflow:shopflow@localhost:5432/shopflow")
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://shopflow:shopflow@localhost:5432/shopflow"
+    )
 
-    @computed_field  # type: ignore[misc]
+    @computed_field
     @property
     def database_url(self) -> str:
         return self.DATABASE_URL
 
     SECRET_KEY: str = Field(default="dev-secret-change-in-production")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
 
@@ -33,3 +35,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+__all__ = ["settings"]

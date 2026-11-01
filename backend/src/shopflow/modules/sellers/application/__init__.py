@@ -1,15 +1,5 @@
-"""Sellers application __init__."""
+"""Sellers application package."""
 
-from shopflow.modules.sellers.application.use_cases.seller import (
-    CreateSellerUseCase,
-    GetSellerUseCase,
-    UpdateSellerUseCase,
-    ListSellersUseCase,
-)
+from shopflow.modules.sellers.application.services.seller import SellerService
 
-__all__ = [
-    "CreateSellerUseCase",
-    "GetSellerUseCase",
-    "UpdateSellerUseCase",
-    "ListSellersUseCase",
-]
+__all__ = ["SellerService"]

@@ -1,4 +1,4 @@
-"""Bootstrap __init__."""
+"""Bootstrap package."""
 
 from shopflow.bootstrap.application import app
 

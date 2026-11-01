@@ -1,17 +1,10 @@
-"""Catalog domain models: Product and Category."""
-
-from __future__ import annotations
+"""Catalog domain models."""
 
 from shopflow.shared.domain.base_entity import BaseEntity
 
 
 class Category(BaseEntity):
-    def __init__(
-        self,
-        id: str | None = None,
-        name: str = "",
-        name_english: str | None = None,
-    ):
+    def __init__(self, id=None, name="", name_english=None):
         super().__init__()
         self.id = id or self.id
         self.name = name
@@ -19,23 +12,9 @@ class Category(BaseEntity):
 
 
 class Product(BaseEntity):
-    def __init__(
-        self,
-        id: str | None = None,
-        sku: str = "",
-        name: str = "",
-        description: str = "",
-        price: float = 0.0,
-        stock_quantity: int = 0,
-        category_id: str | None = None,
-        seller_id: str | None = None,
-        is_active: bool = True,
-        weight_g: float | None = None,
-        length_cm: float | None = None,
-        height_cm: float | None = None,
-        width_cm: float | None = None,
-        photos_qty: int | None = None,
-    ):
+    def __init__(self, id=None, sku="", name="", description="", price=0.0,
+                 stock_quantity=0, category_id=None, seller_id=None, is_active=True,
+                 weight_g=None, length_cm=None, height_cm=None, width_cm=None, photos_qty=None):
         super().__init__()
         self.id = id or self.id
         self.sku = sku

@@ -1,8 +1,5 @@
-"""Payments application __init__."""
+"""Payments application package."""
 
-from shopflow.modules.payments.application.use_cases.payment import (
-    CreatePaymentUseCase,
-    ListPaymentsByOrderUseCase,
-)
+from shopflow.modules.payments.application.services.payment import PaymentService
 
-__all__ = ["CreatePaymentUseCase", "ListPaymentsByOrderUseCase"]
+__all__ = ["PaymentService"]

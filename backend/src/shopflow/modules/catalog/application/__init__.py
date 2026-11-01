@@ -1,21 +1,5 @@
-"""Catalog application __init__."""
+"""Catalog application package."""
 
-from shopflow.modules.catalog.application.use_cases.catalog import (
-    CreateCategoryUseCase,
-    ListCategoriesUseCase,
-    CreateProductUseCase,
-    GetProductUseCase,
-    ListProductsUseCase,
-    UpdateProductUseCase,
-    AdjustStockUseCase,
-)
+from shopflow.modules.catalog.application.services.catalog import CatalogService
 
-__all__ = [
-    "CreateCategoryUseCase",
-    "ListCategoriesUseCase",
-    "CreateProductUseCase",
-    "GetProductUseCase",
-    "ListProductsUseCase",
-    "UpdateProductUseCase",
-    "AdjustStockUseCase",
-]
+__all__ = ["CatalogService"]

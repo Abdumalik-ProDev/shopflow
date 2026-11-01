@@ -1,14 +1,10 @@
-"""Reviews infrastructure persistence models."""
-
-from __future__ import annotations
+"""Reviews infrastructure ORM models."""
 
 import uuid
 from datetime import datetime
-
 from sqlalchemy import String, DateTime, ForeignKey, func, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
 from shopflow.shared.infrastructure.database.metadata import metadata
 
 
@@ -18,7 +14,6 @@ class Base(DeclarativeBase):
 
 class ReviewRow(Base):
     __tablename__ = "reviews"
-
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id"), nullable=False)
     review_score: Mapped[int] = mapped_column(Integer, nullable=False)

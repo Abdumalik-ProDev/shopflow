@@ -1,1 +1,1 @@
-"""Core __init__."""
+"""Core package."""

@@ -51,10 +51,4 @@ class OrderStatusUpdate(BaseModel):
     status: str
 
 
-__all__ = [
-    "OrderItemCreate",
-    "OrderCreate",
-    "OrderItemOut",
-    "OrderOut",
-    "OrderStatusUpdate",
-]
+__all__ = ["OrderItemCreate", "OrderCreate", "OrderItemOut", "OrderOut", "OrderStatusUpdate"]

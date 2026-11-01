@@ -2,11 +2,11 @@
 
 Populates the *live marketplace* database with a curated subset of the Olist
 historical data. Per VISION.md §5, the full Olist dataset remains in
-ml/datasets/olist/ for ML training, separate from live Postgres data.
+ml/data/raw/olist/ for ML training, separate from live Postgres data.
 
 Usage:
     cd backend
-    uv run python scripts/seed_olist.py --data-dir ../../dataset --limit 2000
+    uv run python scripts/seed_olist.py --data-dir ../../ml/data/raw/olist --limit 2000
 
 Environment:
     DATABASE_URL  (default: postgresql+asyncpg://shopflow:shopflow@localhost:5432/shopflow)
@@ -29,7 +29,7 @@ from sqlalchemy.orm import sessionmaker
 from shopflow.core.config.settings import settings
 from shopflow.shared.infrastructure.database.metadata import metadata
 
-# Ensure all model tables are registered on the shared metadata
+# Register all model tables on shared metadata
 from shopflow.modules.identity.infrastructure.persistence.models import Base as _b1  # noqa: F401
 from shopflow.modules.customers.infrastructure.persistence.models import Base as _b2  # noqa: F401
 from shopflow.modules.sellers.infrastructure.persistence.models import Base as _b3   # noqa: F401
@@ -37,7 +37,6 @@ from shopflow.modules.catalog.infrastructure.persistence.models import Base as _
 from shopflow.modules.orders.infrastructure.persistence.models import Base as _b5    # noqa: F401
 from shopflow.modules.payments.infrastructure.persistence.models import Base as _b6  # noqa: F401
 from shopflow.modules.reviews.infrastructure.persistence.models import Base as _b7   # noqa: F401
-from shopflow.modules.inventory.infrastructure.persistence.models import Base as _b8 # noqa: F401
 
 from shopflow.modules.identity.infrastructure.persistence.models import UserRow
 from shopflow.modules.customers.infrastructure.persistence.models import CustomerRow
@@ -46,7 +45,6 @@ from shopflow.modules.catalog.infrastructure.persistence.models import CategoryR
 from shopflow.modules.orders.infrastructure.persistence.models import OrderRow, OrderItemRow
 from shopflow.modules.payments.infrastructure.persistence.models import PaymentRow
 from shopflow.modules.reviews.infrastructure.persistence.models import ReviewRow
-from shopflow.modules.inventory.infrastructure.persistence.models import StockMovementRow
 
 from shopflow.core.security import hash_password
 
@@ -124,7 +122,7 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
         async with engine.begin() as conn:
             await conn.run_sync(metadata.create_all)
 
-        # ---------- Users (identity) ----------
+        # Users
         cust_user_id: dict[str, uuid.UUID] = {}
         sell_user_id: dict[str, uuid.UUID] = {}
         for c in customers:
@@ -155,7 +153,7 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             ))
         await session.flush()
 
-        # ---------- Customers ----------
+        # Customers
         cust_row_id: dict[str, uuid.UUID] = {}
         for c in customers:
             cid = uuid.uuid4()
@@ -170,7 +168,7 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             ))
         await session.flush()
 
-        # ---------- Sellers ----------
+        # Sellers
         sell_row_id: dict[str, uuid.UUID] = {}
         for s in sellers:
             sid = uuid.uuid4()
@@ -184,7 +182,7 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             ))
         await session.flush()
 
-        # ---------- Categories ----------
+        # Categories
         cat_id: dict[str, uuid.UUID] = {}
         seen: set[str] = set()
         for p in products:
@@ -194,13 +192,11 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
                 cid = uuid.uuid4()
                 cat_id[cname] = cid
                 session.add(CategoryRow(
-                    id=cid,
-                    name=cname,
-                    name_english=cat_name_to_english.get(cname),
+                    id=cid, name=cname, name_english=cat_name_to_english.get(cname),
                 ))
         await session.flush()
 
-        # ---------- Products ----------
+        # Products
         prod_id: dict[str, uuid.UUID] = {}
         seller_keys = list(sell_row_id.keys())
         for i, p in enumerate(products):
@@ -208,11 +204,9 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             prod_id[p["product_id"]] = pid
             seller_uuid = sell_row_id.get(seller_keys[i % len(seller_keys)]) if seller_keys else None
             session.add(ProductRow(
-                id=pid,
-                sku=p["product_id"],
+                id=pid, sku=p["product_id"],
                 name=(p.get("product_category_name", "") or "Product").replace("_", " ").title(),
-                description=None,
-                price=0.0,  # real price comes from order_items
+                description=None, price=0.0,
                 stock_quantity=max(parse_int(p.get("product_photos_qty")) * 5, 10),
                 category_id=cat_id.get(p.get("product_category_name", "") or ""),
                 seller_id=seller_uuid,
@@ -225,75 +219,58 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             ))
         await session.flush()
 
-        # ---------- Orders ----------
-        # In Olist, orders.customer_id is actually the customer_unique_id.
+        # Orders
         order_id: dict[str, uuid.UUID] = {}
         for o in orders:
             oid = uuid.uuid4()
             order_id[o["order_id"]] = oid
             cust_uuid = cust_row_id.get(o["customer_id"])
             session.add(OrderRow(
-                id=oid,
-                customer_id=cust_uuid,
+                id=oid, customer_id=cust_uuid,
                 status=o.get("order_status", "delivered") or "delivered",
                 purchase_timestamp=parse_ts(o.get("order_purchase_timestamp")),
                 approved_at=parse_ts(o.get("order_approved_at")),
                 delivered_carrier_date=parse_ts(o.get("order_delivered_carrier_date")),
                 delivered_customer_date=parse_ts(o.get("order_delivered_customer_date")),
                 estimated_delivery_date=parse_ts(o.get("order_estimated_delivery_date")),
-                total=0.0,  # computed from order_items
+                total=0.0,
             ))
         await session.flush()
 
-        # ---------- Order Items (also set product price + order total) ----------
+        # Order items + totals
         order_totals: dict[str, float] = {k: 0.0 for k in order_id}
         item_count = 0
         for it in order_items:
             oid = order_id.get(it["order_id"])
             if oid is None:
                 continue
-            pid = prod_id.get(it["product_id"])
             price = parse_decimal(it.get("price"))
             freight = parse_decimal(it.get("freight_value"))
             qty = parse_int(it.get("quantity")) or 1
             iid = uuid.uuid4()
             item_count += 1
             session.add(OrderItemRow(
-                id=iid,
-                order_id=oid,
-                product_id=it["product_id"],
+                id=iid, order_id=oid, product_id=it["product_id"],
                 seller_id=it.get("seller_id", "") or "",
-                price=price,
-                freight_value=freight,
-                quantity=qty,
+                price=price, freight_value=freight, quantity=qty,
             ))
             order_totals[str(oid)] = order_totals.get(str(oid), 0.0) + (price * qty)
 
-        # Update order totals + add stock movements
         for oid_str, total in order_totals.items():
             oid = uuid.UUID(oid_str)
             row = await session.get(OrderRow, oid)
             if row:
                 row.total = round(total, 2)
 
-        for pid, prow in prod_id.items():
-            session.add(StockMovementRow(
-                id=uuid.uuid4(),
-                product_id=pid,  # store as sku string per domain model
-                type="in",
-                quantity=max(parse_int(products[0].get("product_photos_qty", "0")) * 5, 10) if products else 10,
-                reason="seed",
-            ))
         await session.flush()
 
-        # ---------- Payments ----------
+        # Payments
         for py in payments:
             oid = order_id.get(py["order_id"])
             if oid is None:
                 continue
             session.add(PaymentRow(
-                id=uuid.uuid4(),
-                order_id=oid,
+                id=uuid.uuid4(), order_id=oid,
                 payment_sequential=parse_int(py.get("payment_sequential")) or 1,
                 payment_type=py.get("payment_type", "credit_card") or "credit_card",
                 payment_installments=parse_int(py.get("payment_installments")) or 1,
@@ -301,14 +278,13 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
             ))
         await session.flush()
 
-        # ---------- Reviews ----------
+        # Reviews
         for rv in reviews:
             oid = order_id.get(rv["order_id"])
             if oid is None:
                 continue
             session.add(ReviewRow(
-                id=uuid.uuid4(),
-                order_id=oid,
+                id=uuid.uuid4(), order_id=oid,
                 review_score=parse_int(rv.get("review_score")) or 5,
                 comment_title=rv.get("review_comment_title") or None,
                 comment_message=rv.get("review_comment_message") or None,
@@ -317,13 +293,13 @@ async def seed(data_dir: Path, limit: int | None = None) -> None:
 
         await session.commit()
 
-    print(f"Seed complete. Orders: {len(order_id)}, OrderItems inserted: {item_count}")
+    print(f"Seed complete. Orders: {len(order_id)}, OrderItems: {item_count}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed ShopFlow with Olist dataset")
     parser.add_argument(
-        "--data-dir", type=Path, default=Path("../../dataset"),
+        "--data-dir", type=Path, default=Path("../../ml/data/raw/olist"),
         help="Path to dataset folder containing Olist CSVs",
     )
     parser.add_argument(

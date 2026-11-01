@@ -1,4 +1,4 @@
-"""Security utilities: password hashing and JWT tokens."""
+"""Security: password hashing and JWT tokens."""
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -30,7 +30,8 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
 
 def decode_token(token: str) -> dict[str, Any] | None:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         return None
+
+__all__ = ["hash_password", "verify_password", "create_access_token", "decode_token"]

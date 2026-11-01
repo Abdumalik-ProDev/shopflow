@@ -1,14 +1,11 @@
 """Orders domain models."""
 
-from __future__ import annotations
-
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-
 from shopflow.shared.domain.base_entity import BaseEntity
 
 
-class OrderStatus(str):
+class OrderStatus:
     PENDING = "pending"
     APPROVED = "approved"
     IN_TRANSIT = "in_transit"
@@ -17,18 +14,10 @@ class OrderStatus(str):
 
 
 class Order(BaseEntity):
-    def __init__(
-        self,
-        id: str | None = None,
-        customer_id: str = "",
-        status: str = OrderStatus.PENDING,
-        purchase_timestamp: Optional[datetime] = None,
-        approved_at: Optional[datetime] = None,
-        delivered_carrier_date: Optional[datetime] = None,
-        delivered_customer_date: Optional[datetime] = None,
-        estimated_delivery_date: Optional[datetime] = None,
-        total: float = 0.0,
-    ):
+    def __init__(self, id=None, customer_id="", status=OrderStatus.PENDING,
+                 purchase_timestamp=None, approved_at=None,
+                 delivered_carrier_date=None, delivered_customer_date=None,
+                 estimated_delivery_date=None, total=0.0):
         super().__init__()
         self.id = id or self.id
         self.customer_id = customer_id
@@ -44,12 +33,12 @@ class Order(BaseEntity):
         if self.status != OrderStatus.PENDING:
             raise ValueError("Only pending orders can be approved")
         self.status = OrderStatus.APPROVED
-        self.approved_at = datetime.now()
+        self.approved_at = datetime.now(timezone.utc)
         self.touch()
 
     def mark_delivered(self) -> None:
         self.status = OrderStatus.DELIVERED
-        self.delivered_customer_date = datetime.now()
+        self.delivered_customer_date = datetime.now(timezone.utc)
         self.touch()
 
     def cancel(self) -> None:
@@ -60,16 +49,8 @@ class Order(BaseEntity):
 
 
 class OrderItem(BaseEntity):
-    def __init__(
-        self,
-        id: str | None = None,
-        order_id: str = "",
-        product_id: str = "",
-        seller_id: str = "",
-        price: float = 0.0,
-        freight_value: float = 0.0,
-        quantity: int = 1,
-    ):
+    def __init__(self, id=None, order_id="", product_id="", seller_id="",
+                 price=0.0, freight_value=0.0, quantity=1):
         super().__init__()
         self.id = id or self.id
         self.order_id = order_id

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import UUID
 
 from shopflow.modules.identity.domain.models.user import User
 from shopflow.modules.identity.domain.repositories.user import UserRepository
@@ -31,8 +32,6 @@ class SqlAlchemyUserRepository(UserRepository):
         await self.session.flush()
 
     async def get_by_id(self, user_id: str) -> Optional[User]:
-        from uuid import UUID
-
         row = await self.session.get(UserRow, UUID(user_id))
         return self._to_domain(row) if row else None
 
@@ -46,7 +45,7 @@ class SqlAlchemyUserRepository(UserRepository):
         row = result.scalar_one_or_none()
         return self._to_domain(row) if row else None
 
-    async def list(self, skip: int = 0, limit: int = 100) -> list[User]:
+    async def list(self, skip: int = 0, limit: int = 100) -> List[User]:
         result = await self.session.execute(select(UserRow).offset(skip).limit(limit))
         return [self._to_domain(r) for r in result.scalars().all()]
 
@@ -64,8 +63,6 @@ class SqlAlchemyUserRepository(UserRepository):
         await self.session.flush()
 
     async def delete(self, user_id: str) -> None:
-        from uuid import UUID
-
         row = await self.session.get(UserRow, UUID(user_id))
         if row:
             await self.session.delete(row)
@@ -90,6 +87,5 @@ class SqlAlchemyUserRepository(UserRepository):
             is_superuser=row.is_superuser,
             role=row.role,
         )
-
 
 __all__ = ["SqlAlchemyUserRepository"]

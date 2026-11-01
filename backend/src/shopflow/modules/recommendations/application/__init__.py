@@ -1,5 +1,5 @@
-"""Recommendations application __init__."""
+"""Recommendations application package."""
 
-from shopflow.modules.recommendations.application.use_cases.recommendation import GetRecommendationsUseCase
+from shopflow.modules.recommendations.application.services.recommendation import RecommendationService
 
-__all__ = ["GetRecommendationsUseCase"]
+__all__ = ["RecommendationService"]

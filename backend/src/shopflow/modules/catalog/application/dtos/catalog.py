@@ -64,10 +64,4 @@ class ProductOut(BaseModel):
         from_attributes = True
 
 
-__all__ = [
-    "CategoryCreate",
-    "CategoryOut",
-    "ProductCreate",
-    "ProductUpdate",
-    "ProductOut",
-]
+__all__ = ["CategoryCreate", "CategoryOut", "ProductCreate", "ProductUpdate", "ProductOut"]

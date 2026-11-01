@@ -1,15 +1,5 @@
-"""Customers application __init__."""
+"""Customers application package."""
 
-from shopflow.modules.customers.application.use_cases.customer import (
-    CreateCustomerUseCase,
-    GetCustomerUseCase,
-    UpdateCustomerUseCase,
-    ListCustomersUseCase,
-)
+from shopflow.modules.customers.application.services.customer import CustomerService
 
-__all__ = [
-    "CreateCustomerUseCase",
-    "GetCustomerUseCase",
-    "UpdateCustomerUseCase",
-    "ListCustomersUseCase",
-]
+__all__ = ["CustomerService"]

@@ -1,11 +1,9 @@
 """Payments domain models."""
 
-from __future__ import annotations
-
 from shopflow.shared.domain.base_entity import BaseEntity
 
 
-class PaymentType(str):
+class PaymentType:
     CREDIT_CARD = "credit_card"
     BOLETO = "boleto"
     DEBIT_CARD = "debit_card"
@@ -13,15 +11,9 @@ class PaymentType(str):
 
 
 class Payment(BaseEntity):
-    def __init__(
-        self,
-        id: str | None = None,
-        order_id: str = "",
-        payment_sequential: int = 1,
-        payment_type: str = PaymentType.CREDIT_CARD,
-        payment_installments: int = 1,
-        payment_value: float = 0.0,
-    ):
+    def __init__(self, id=None, order_id="", payment_sequential=1,
+                 payment_type=PaymentType.CREDIT_CARD,
+                 payment_installments=1, payment_value=0.0):
         super().__init__()
         self.id = id or self.id
         self.order_id = order_id

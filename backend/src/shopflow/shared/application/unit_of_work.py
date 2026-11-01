@@ -1,4 +1,4 @@
-"""Unit of Work interface for transaction management across modules."""
+"""Shared Unit of Work for transaction management."""
 
 from __future__ import annotations
 
@@ -13,6 +13,5 @@ class UnitOfWork(ABC):
     @abstractmethod
     async def rollback(self) -> None:
         raise NotImplementedError
-
 
 __all__ = ["UnitOfWork"]

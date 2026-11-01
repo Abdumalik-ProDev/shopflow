@@ -4,8 +4,6 @@ from typing import Any
 
 
 class ShopFlowError(Exception):
-    """Base application exception."""
-
     def __init__(self, message: str, code: str | None = None, details: dict[str, Any] | None = None):
         self.message = message
         self.code = code or self.__class__.__name__
@@ -31,3 +29,12 @@ class AuthorizationError(ShopFlowError):
 
 class AuthenticationError(ShopFlowError):
     pass
+
+__all__ = [
+    "ShopFlowError",
+    "NotFoundError",
+    "ConflictError",
+    "ValidationError",
+    "AuthorizationError",
+    "AuthenticationError",
+]

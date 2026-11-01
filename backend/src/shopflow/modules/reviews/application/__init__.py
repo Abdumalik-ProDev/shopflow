@@ -1,8 +1,5 @@
-"""Reviews application __init__."""
+"""Reviews application package."""
 
-from shopflow.modules.reviews.application.use_cases.review import (
-    CreateReviewUseCase,
-    ListReviewsByOrderUseCase,
-)
+from shopflow.modules.reviews.application.services.review import ReviewService
 
-__all__ = ["CreateReviewUseCase", "ListReviewsByOrderUseCase"]
+__all__ = ["ReviewService"]

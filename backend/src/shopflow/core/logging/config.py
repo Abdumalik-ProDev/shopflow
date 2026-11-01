@@ -1,4 +1,4 @@
-"""Structured logging configuration."""
+"""Logging configuration."""
 
 import logging
 import sys
@@ -21,5 +21,7 @@ def configure_logging() -> None:
     )
 
 
-def get_logger(name: str) -> structlog.BoundLogger:
+def get_logger(name: str):
     return structlog.get_logger(name)
+
+__all__ = ["configure_logging", "get_logger"]

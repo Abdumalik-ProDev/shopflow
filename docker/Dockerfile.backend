@@ -17,7 +17,6 @@ RUN cd /app && uv sync --frozen --no-cache --no-dev --project backend
 COPY backend/src ./backend/src
 COPY backend/alembic ./backend/alembic
 COPY backend/alembic.ini ./backend/
-COPY dataset ./dataset
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app/backend/src

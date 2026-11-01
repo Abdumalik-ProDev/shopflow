@@ -1,7 +1,5 @@
 """Recommendations domain repository interface."""
 
-from __future__ import annotations
-
 from typing import List
 from shopflow.modules.recommendations.domain.models.recommendation import ProductRecommendation
 

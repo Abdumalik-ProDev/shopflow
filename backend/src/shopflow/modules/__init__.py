@@ -1,1 +1,1 @@
-"""Modules __init__."""
+"""Modules package."""

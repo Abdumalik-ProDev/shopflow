@@ -29,14 +29,4 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class TokenData(BaseModel):
-    user_id: str | None = None
-
-
-__all__ = ["UserCreate", "UserUpdate", "UserOut", "Token", "TokenData"]
+__all__ = ["UserCreate", "UserUpdate", "UserOut"]

@@ -1,4 +1,4 @@
-"""Shared domain base types."""
+"""Shared domain base entity."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ from uuid import UUID, uuid4
 class DomainEvent:
     event_id: UUID = field(default_factory=uuid4)
     occurred_on: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    event_type: str = field(init=False)
 
-    def __post_init__(self) -> None:
-        self.event_type = self.__class__.__name__
+    @property
+    def event_type(self) -> str:
+        return self.__class__.__name__
 
 
 @dataclass
@@ -40,3 +40,5 @@ class AggregateRoot(BaseEntity):
     @property
     def domain_events(self) -> list[DomainEvent]:
         return list(self._domain_events)
+
+__all__ = ["BaseEntity", "AggregateRoot", "DomainEvent"]

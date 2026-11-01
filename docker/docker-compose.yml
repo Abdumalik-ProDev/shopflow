@@ -74,11 +74,11 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
-    command: ["uv", "run", "python", "scripts/seed_olist.py", "--data-dir", "/app/dataset", "--limit", "5000"]
+    command: ["uv", "run", "python", "scripts/seed_olist.py", "--data-dir", "/app/ml_data", "--limit", "5000"]
     environment:
       DATABASE_URL: postgresql+asyncpg://shopflow:shopflow@db:5432/shopflow
     volumes:
-      - ../dataset:/app/dataset:ro
+      - ../ml/data/raw/olist:/app/ml_data:ro
     depends_on:
       backend:
         condition: service_started

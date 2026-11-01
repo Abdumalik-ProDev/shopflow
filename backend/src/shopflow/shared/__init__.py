@@ -1,1 +1,1 @@
-"""Shared __init__."""
+"""Shared package."""

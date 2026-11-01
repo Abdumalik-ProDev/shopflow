@@ -1,15 +1,5 @@
-"""Orders application __init__."""
+"""Orders application package."""
 
-from shopflow.modules.orders.application.use_cases.order import (
-    CreateOrderUseCase,
-    GetOrderUseCase,
-    ListOrdersUseCase,
-    UpdateOrderStatusUseCase,
-)
+from shopflow.modules.orders.application.services.order import OrderService
 
-__all__ = [
-    "CreateOrderUseCase",
-    "GetOrderUseCase",
-    "ListOrdersUseCase",
-    "UpdateOrderStatusUseCase",
-]
+__all__ = ["OrderService"]

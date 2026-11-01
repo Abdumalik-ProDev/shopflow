@@ -19,4 +19,11 @@ class Failure:
     message: str
 
 
-__all__ = ["Success", "Failure", "T"]
+@dataclass
+class Paginated(Generic[T]):
+    items: list[T]
+    total: int
+    skip: int
+    limit: int
+
+__all__ = ["Success", "Failure", "Paginated", "T"]

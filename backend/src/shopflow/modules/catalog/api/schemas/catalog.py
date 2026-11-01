@@ -65,9 +65,6 @@ class ProductResponse(BaseModel):
 
 
 __all__ = [
-    "CategoryCreateRequest",
-    "CategoryResponse",
-    "ProductCreateRequest",
-    "ProductUpdateRequest",
-    "ProductResponse",
+    "CategoryCreateRequest", "CategoryResponse",
+    "ProductCreateRequest", "ProductUpdateRequest", "ProductResponse",
 ]
