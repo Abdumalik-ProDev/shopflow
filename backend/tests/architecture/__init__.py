@@ -1,0 +1,1 @@
+# ShopFlow architecture tests

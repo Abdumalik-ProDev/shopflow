@@ -1,0 +1,339 @@
+"""Seed script: loads the Brazilian Olist e-commerce dataset into PostgreSQL.
+
+Populates the *live marketplace* database with a curated subset of the Olist
+historical data. Per VISION.md §5, the full Olist dataset remains in
+ml/datasets/olist/ for ML training, separate from live Postgres data.
+
+Usage:
+    cd backend
+    uv run python scripts/seed_olist.py --data-dir ../../dataset --limit 2000
+
+Environment:
+    DATABASE_URL  (default: postgresql+asyncpg://shopflow:shopflow@localhost:5432/shopflow)
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import csv
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from shopflow.core.config.settings import settings
+from shopflow.shared.infrastructure.database.metadata import metadata
+
+# Ensure all model tables are registered on the shared metadata
+from shopflow.modules.identity.infrastructure.persistence.models import Base as _b1  # noqa: F401
+from shopflow.modules.customers.infrastructure.persistence.models import Base as _b2  # noqa: F401
+from shopflow.modules.sellers.infrastructure.persistence.models import Base as _b3   # noqa: F401
+from shopflow.modules.catalog.infrastructure.persistence.models import Base as _b4   # noqa: F401
+from shopflow.modules.orders.infrastructure.persistence.models import Base as _b5    # noqa: F401
+from shopflow.modules.payments.infrastructure.persistence.models import Base as _b6  # noqa: F401
+from shopflow.modules.reviews.infrastructure.persistence.models import Base as _b7   # noqa: F401
+from shopflow.modules.inventory.infrastructure.persistence.models import Base as _b8 # noqa: F401
+
+from shopflow.modules.identity.infrastructure.persistence.models import UserRow
+from shopflow.modules.customers.infrastructure.persistence.models import CustomerRow
+from shopflow.modules.sellers.infrastructure.persistence.models import SellerRow
+from shopflow.modules.catalog.infrastructure.persistence.models import CategoryRow, ProductRow
+from shopflow.modules.orders.infrastructure.persistence.models import OrderRow, OrderItemRow
+from shopflow.modules.payments.infrastructure.persistence.models import PaymentRow
+from shopflow.modules.reviews.infrastructure.persistence.models import ReviewRow
+from shopflow.modules.inventory.infrastructure.persistence.models import StockMovementRow
+
+from shopflow.core.security import hash_password
+
+
+def parse_ts(value: str | None):
+    if not value or str(value).strip() == "":
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+def parse_decimal(value: str | None) -> float:
+    if value is None or str(value).strip() == "":
+        return 0.0
+    try:
+        return float(Decimal(str(value)))
+    except Exception:
+        return 0.0
+
+
+def parse_int(value: str | None) -> int:
+    if value is None or str(value).strip() == "":
+        return 0
+    try:
+        return int(float(str(value)))
+    except Exception:
+        return 0
+
+
+def read_csv(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(row)
+    return rows
+
+
+async def seed(data_dir: Path, limit: int | None = None) -> None:
+    engine = create_async_engine(settings.database_url, echo=False)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    customers = read_csv(data_dir / "olist_customers_dataset.csv")
+    sellers = read_csv(data_dir / "olist_sellers_dataset.csv")
+    products = read_csv(data_dir / "olist_products_dataset.csv")
+    orders = read_csv(data_dir / "olist_orders_dataset.csv")
+    order_items = read_csv(data_dir / "olist_order_items_dataset.csv")
+    payments = read_csv(data_dir / "olist_order_payments_dataset.csv")
+    reviews = read_csv(data_dir / "olist_order_reviews_dataset.csv")
+    translations = read_csv(data_dir / "product_category_name_translation.csv")
+
+    if limit:
+        customers = customers[:limit]
+        sellers = sellers[:limit]
+        products = products[:limit]
+        orders = orders[:limit]
+        order_items = order_items[:limit]
+        payments = payments[:limit]
+        reviews = reviews[:limit]
+
+    print(
+        f"Loaded -> customers:{len(customers)} sellers:{len(sellers)} "
+        f"products:{len(products)} orders:{len(orders)} items:{len(order_items)} "
+        f"payments:{len(payments)} reviews:{len(reviews)}"
+    )
+
+    cat_name_to_english = {
+        r.get("product_category_name", ""): r.get("product_category_name_english", "")
+        for r in translations
+    }
+
+    async with async_session() as session:
+        async with engine.begin() as conn:
+            await conn.run_sync(metadata.create_all)
+
+        # ---------- Users (identity) ----------
+        cust_user_id: dict[str, uuid.UUID] = {}
+        sell_user_id: dict[str, uuid.UUID] = {}
+        for c in customers:
+            uid = uuid.uuid4()
+            cust_user_id[c["customer_unique_id"]] = uid
+            session.add(UserRow(
+                id=uid,
+                email=f"{c['customer_unique_id']}@shopflow.example",
+                username=c["customer_unique_id"],
+                hashed_password=hash_password("Password123!"),
+                full_name=None,
+                is_active=True,
+                is_superuser=False,
+                role="customer",
+            ))
+        for s in sellers:
+            uid = uuid.uuid4()
+            sell_user_id[s["seller_id"]] = uid
+            session.add(UserRow(
+                id=uid,
+                email=f"seller-{s['seller_id']}@shopflow.example",
+                username=f"seller_{s['seller_id'][:8]}",
+                hashed_password=hash_password("Password123!"),
+                full_name=None,
+                is_active=True,
+                is_superuser=False,
+                role="seller",
+            ))
+        await session.flush()
+
+        # ---------- Customers ----------
+        cust_row_id: dict[str, uuid.UUID] = {}
+        for c in customers:
+            cid = uuid.uuid4()
+            cust_row_id[c["customer_unique_id"]] = cid
+            session.add(CustomerRow(
+                id=cid,
+                customer_unique_id=c["customer_unique_id"],
+                customer_zip_code_prefix=c.get("customer_zip_code_prefix", "") or "",
+                customer_city=c.get("customer_city", "") or "",
+                customer_state=c.get("customer_state", "") or "",
+                user_id=cust_user_id[c["customer_unique_id"]],
+            ))
+        await session.flush()
+
+        # ---------- Sellers ----------
+        sell_row_id: dict[str, uuid.UUID] = {}
+        for s in sellers:
+            sid = uuid.uuid4()
+            sell_row_id[s["seller_id"]] = sid
+            session.add(SellerRow(
+                id=sid,
+                seller_zip_code_prefix=s.get("seller_zip_code_prefix", "") or "",
+                seller_city=s.get("seller_city", "") or "",
+                seller_state=s.get("seller_state", "") or "",
+                user_id=sell_user_id[s["seller_id"]],
+            ))
+        await session.flush()
+
+        # ---------- Categories ----------
+        cat_id: dict[str, uuid.UUID] = {}
+        seen: set[str] = set()
+        for p in products:
+            cname = p.get("product_category_name", "") or ""
+            if cname and cname not in seen:
+                seen.add(cname)
+                cid = uuid.uuid4()
+                cat_id[cname] = cid
+                session.add(CategoryRow(
+                    id=cid,
+                    name=cname,
+                    name_english=cat_name_to_english.get(cname),
+                ))
+        await session.flush()
+
+        # ---------- Products ----------
+        prod_id: dict[str, uuid.UUID] = {}
+        seller_keys = list(sell_row_id.keys())
+        for i, p in enumerate(products):
+            pid = uuid.uuid4()
+            prod_id[p["product_id"]] = pid
+            seller_uuid = sell_row_id.get(seller_keys[i % len(seller_keys)]) if seller_keys else None
+            session.add(ProductRow(
+                id=pid,
+                sku=p["product_id"],
+                name=(p.get("product_category_name", "") or "Product").replace("_", " ").title(),
+                description=None,
+                price=0.0,  # real price comes from order_items
+                stock_quantity=max(parse_int(p.get("product_photos_qty")) * 5, 10),
+                category_id=cat_id.get(p.get("product_category_name", "") or ""),
+                seller_id=seller_uuid,
+                is_active=True,
+                weight_g=parse_decimal(p.get("product_weight_g")) or None,
+                length_cm=parse_decimal(p.get("product_length_cm")) or None,
+                height_cm=parse_decimal(p.get("product_height_cm")) or None,
+                width_cm=parse_decimal(p.get("product_width_cm")) or None,
+                photos_qty=parse_int(p.get("product_photos_qty")) or None,
+            ))
+        await session.flush()
+
+        # ---------- Orders ----------
+        # In Olist, orders.customer_id is actually the customer_unique_id.
+        order_id: dict[str, uuid.UUID] = {}
+        for o in orders:
+            oid = uuid.uuid4()
+            order_id[o["order_id"]] = oid
+            cust_uuid = cust_row_id.get(o["customer_id"])
+            session.add(OrderRow(
+                id=oid,
+                customer_id=cust_uuid,
+                status=o.get("order_status", "delivered") or "delivered",
+                purchase_timestamp=parse_ts(o.get("order_purchase_timestamp")),
+                approved_at=parse_ts(o.get("order_approved_at")),
+                delivered_carrier_date=parse_ts(o.get("order_delivered_carrier_date")),
+                delivered_customer_date=parse_ts(o.get("order_delivered_customer_date")),
+                estimated_delivery_date=parse_ts(o.get("order_estimated_delivery_date")),
+                total=0.0,  # computed from order_items
+            ))
+        await session.flush()
+
+        # ---------- Order Items (also set product price + order total) ----------
+        order_totals: dict[str, float] = {k: 0.0 for k in order_id}
+        item_count = 0
+        for it in order_items:
+            oid = order_id.get(it["order_id"])
+            if oid is None:
+                continue
+            pid = prod_id.get(it["product_id"])
+            price = parse_decimal(it.get("price"))
+            freight = parse_decimal(it.get("freight_value"))
+            qty = parse_int(it.get("quantity")) or 1
+            iid = uuid.uuid4()
+            item_count += 1
+            session.add(OrderItemRow(
+                id=iid,
+                order_id=oid,
+                product_id=it["product_id"],
+                seller_id=it.get("seller_id", "") or "",
+                price=price,
+                freight_value=freight,
+                quantity=qty,
+            ))
+            order_totals[str(oid)] = order_totals.get(str(oid), 0.0) + (price * qty)
+
+        # Update order totals + add stock movements
+        for oid_str, total in order_totals.items():
+            oid = uuid.UUID(oid_str)
+            row = await session.get(OrderRow, oid)
+            if row:
+                row.total = round(total, 2)
+
+        for pid, prow in prod_id.items():
+            session.add(StockMovementRow(
+                id=uuid.uuid4(),
+                product_id=pid,  # store as sku string per domain model
+                type="in",
+                quantity=max(parse_int(products[0].get("product_photos_qty", "0")) * 5, 10) if products else 10,
+                reason="seed",
+            ))
+        await session.flush()
+
+        # ---------- Payments ----------
+        for py in payments:
+            oid = order_id.get(py["order_id"])
+            if oid is None:
+                continue
+            session.add(PaymentRow(
+                id=uuid.uuid4(),
+                order_id=oid,
+                payment_sequential=parse_int(py.get("payment_sequential")) or 1,
+                payment_type=py.get("payment_type", "credit_card") or "credit_card",
+                payment_installments=parse_int(py.get("payment_installments")) or 1,
+                payment_value=parse_decimal(py.get("payment_value")),
+            ))
+        await session.flush()
+
+        # ---------- Reviews ----------
+        for rv in reviews:
+            oid = order_id.get(rv["order_id"])
+            if oid is None:
+                continue
+            session.add(ReviewRow(
+                id=uuid.uuid4(),
+                order_id=oid,
+                review_score=parse_int(rv.get("review_score")) or 5,
+                comment_title=rv.get("review_comment_title") or None,
+                comment_message=rv.get("review_comment_message") or None,
+            ))
+        await session.flush()
+
+        await session.commit()
+
+    print(f"Seed complete. Orders: {len(order_id)}, OrderItems inserted: {item_count}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Seed ShopFlow with Olist dataset")
+    parser.add_argument(
+        "--data-dir", type=Path, default=Path("../../dataset"),
+        help="Path to dataset folder containing Olist CSVs",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        help="Max rows per table (useful for tests / smoke runs)",
+    )
+    args = parser.parse_args()
+
+    asyncio.run(seed(args.data_dir, args.limit))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,2 @@
+# ruff: ignore
+# Alembic will generate migrations automatically; commit them here.
