@@ -16,3 +16,4 @@ dist/
 htmlcov/
 *.egg-info/
 .venv/
+.ruff_cache
