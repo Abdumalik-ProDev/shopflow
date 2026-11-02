@@ -17,9 +17,11 @@ The project will follow these principles:
 9. Testability: Domain, application, integration, API, and ML tests.
 10. Production readiness: Configuration, migrations, logging, security, observability, and reproducible builds.
 
-## 2. Proposed backend scaffold
+## 2. Established backend scaffold
 
-This is the architectural structure I want to establish:
+ShopFlow uses a clean, production-grade Layered Monolith:
+
+$$\text{Model} \longrightarrow \text{DTO} \longrightarrow \text{Repository} \longrightarrow (\text{Mapper}) \longrightarrow (\text{Utils}) \longrightarrow \text{Services} \longrightarrow \text{Controller} \longrightarrow \text{Security}$$
 
 ```
 backend/
@@ -32,17 +34,27 @@ backend/
 │   ├── env.py
 │   └── versions/
 │
-├── src/
-│   └── shopflow/
-│       ├── __init__.py
-│       │
-│       ├── core/
-│       │   ├── config/
-│       │   ├── security/
-│       │   ├── exceptions/
-│       │   ├── logging/
-│       │   ├── middleware/
-│       │   ├── database/
+├── app/
+│   ├── core/
+│   │   ├── config.py           # App configuration, environment settings
+│   │   └── database.py         # SQLAlchemy async engine, session factory, Base
+│   ├── security/
+│   │   └── security.py         # Bcrypt password hashing & JWT auth tokens
+│   ├── models/                 # SQLAlchemy 2.0 ORM models (User, Product, Order...)
+│   ├── dtos/                   # Pydantic v2 schemas for request & response contracts
+│   ├── repositories/           # Async persistence layer
+│   ├── mappers/                # Explicit Model <-> DTO converters
+│   ├── utils/                  # Safe parsers, currency math, pagination helpers
+│   ├── services/               # Domain business logic & transaction safe ops
+│   ├── controllers/            # FastAPI routers & dependency injection
+│   └── main.py                 # FastAPI application entrypoint & middleware
+│
+├── scripts/
+│   └── seed_olist.py           # Live database seeder from raw Olist data
+└── tests/                      # Automated pytest-asyncio test suite
+```
+
+Each layer has a single, crystal-clear responsibility without redundant nested abstractions.
 │       │   └── dependencies/
 │       │
 │       ├── shared/

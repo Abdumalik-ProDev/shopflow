@@ -7,8 +7,14 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   asChild?: boolean;
 }
 
-export function Button({ className, variant = "default", size = "default", asChild = false, ...props }: ButtonProps) {
-  const Comp = asChild ? (React as any).Fragment : "button";
+export function Button({
+  className,
+  variant = "default",
+  size = "default",
+  asChild = false,
+  children,
+  ...props
+}: ButtonProps) {
   const variants = {
     default: "bg-indigo-900 text-white hover:bg-indigo-800",
     destructive: "bg-red-600 text-white hover:bg-red-700",
@@ -23,15 +29,24 @@ export function Button({ className, variant = "default", size = "default", asChi
     lg: "h-11 rounded-md px-8",
     icon: "h-10 w-10",
   };
+  const computedClassName = cn(
+    "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+    variants[variant],
+    sizes[size],
+    className
+  );
+
+  if (asChild && React.isValidElement(children)) {
+    const childProps = children.props as { className?: string };
+    return React.cloneElement(children as React.ReactElement<any>, {
+      className: cn(computedClassName, childProps.className),
+      ...props,
+    });
+  }
+
   return (
-    <Comp
-      className={cn(
-        "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-900 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-        variants[variant],
-        sizes[size],
-        className
-      )}
-      {...props}
-    />
+    <button className={computedClassName} {...props}>
+      {children}
+    </button>
   );
 }

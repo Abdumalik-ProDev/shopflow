@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-
+from typing import Any, Dict, List
+import pandas as pd
 import mlflow.pyfunc
+
+try:
+    from features import load_order_items, load_products, load_orders
+except ImportError:
+    from ml.features import load_order_items, load_products, load_orders
 
 
 def predict_delivery_eta(features: Dict[str, Any]) -> float:
@@ -27,19 +32,18 @@ def predict_delivery_eta(features: Dict[str, Any]) -> float:
 def recommend_products(customer_id: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Return product recommendations for a customer.
 
-    Uses popularity-based ranking from Olist historical data. Replace with
-    trained collaborative-filtering / LightFM model artifact when available.
+    Uses popularity-based ranking from Olist historical data.
     """
-    from ml.features import load_order_items, load_products, load_orders
-
     items = load_order_items()
     orders = load_orders()[["order_id", "order_purchase_timestamp"]]
-    orders["order_purchase_timestamp"] = pd_to_datetime_safe(orders["order_purchase_timestamp"])
+    orders["order_purchase_timestamp"] = pd.to_datetime(orders["order_purchase_timestamp"], errors="coerce")
     merged = items.merge(orders, on="order_id", how="left")
 
-    # Recent window (last 90 days) for recency-weighted popularity
+    # Recent window for recency-weighted popularity
     cutoff = merged["order_purchase_timestamp"].max() - pd.Timedelta(days=90)
     recent = merged[merged["order_purchase_timestamp"] >= cutoff]
+    if len(recent) == 0:
+        recent = merged
 
     pop = (
         recent.groupby("product_id")
@@ -56,15 +60,10 @@ def recommend_products(customer_id: str, limit: int = 10) -> List[Dict[str, Any]
         {
             "product_id": str(r.product_id),
             "score": round(float(r.score), 2),
-            "reason": f"Popular in {r.product_category_name or 'your region'}",
+            "reason": f"Popular in {r.product_category_name or 'marketplace'}",
         }
         for r in pop.itertuples()
     ]
-
-
-def pd_to_datetime_safe(s):
-    import pandas as pd
-    return pd.to_datetime(s, errors="coerce")
 
 
 __all__ = ["predict_delivery_eta", "recommend_products"]

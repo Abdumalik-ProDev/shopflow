@@ -13,7 +13,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
-from ml.features.build_order_features import build_order_features
+try:
+    from features import build_order_features, load_order_items, load_products, load_orders
+except ImportError:
+    from ml.features import build_order_features, load_order_items, load_products, load_orders
 
 
 def train_recommendation_model() -> Dict[str, Any]:
@@ -22,8 +25,6 @@ def train_recommendation_model() -> Dict[str, Any]:
 
     # Popularity baseline: rank products by revenue
     # Build product-popularity proxy from order_items revenue
-    from ml.features import load_order_items, load_products, load_orders
-
     items = load_order_items()
     orders = load_orders()[["order_id", "order_purchase_timestamp"]]
     orders["order_purchase_timestamp"] = pd.to_datetime(orders["order_purchase_timestamp"])
@@ -42,7 +43,7 @@ def train_recommendation_model() -> Dict[str, Any]:
     products = load_products()
     trans = pop.merge(products[["product_id", "product_category_name"]], on="product_id", how="left")
 
-    with mlflow.start_run(run_name="recommendations"):
+    with mlflow.start_run(run_name="recommendations", nested=True):
         mlflow.log_metrics({"popularity_baseline_mae": mae, "n_products": float(len(pop))})
         mlflow.log_param("approach", "popularity_baseline")
 

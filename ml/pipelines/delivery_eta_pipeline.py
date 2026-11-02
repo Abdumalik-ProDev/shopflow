@@ -30,7 +30,10 @@ try:
 except Exception:  # pragma: no cover
     HAS_LGBM = False
 
-from ml.features.build_order_features import build_order_features
+try:
+    from features import build_order_features
+except ImportError:
+    from ml.features import build_order_features
 
 
 def _prepare(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series, list[str]]:
@@ -92,27 +95,27 @@ def train_delivery_eta() -> Dict[str, Any]:
     for name, pipe in models.items():
         if name == "baseline_mean":
             pred = np.full_like(y_test, y_train.mean(), dtype=float)
-            mae = mean_absolute_error(y_test, pred)
-            rmse = mean_squared_error(y_test, pred, squared=False)
-            r2 = r2_score(y_test, pred)
+            mae = float(mean_absolute_error(y_test, pred))
+            rmse = float(np.sqrt(mean_squared_error(y_test, pred)))
+            r2 = float(r2_score(y_test, pred))
             results[name] = {"mae": mae, "rmse": rmse, "r2": r2}
             continue
         pipe.fit(X_train, y_train)
         pred = pipe.predict(X_test)
-        mae = mean_absolute_error(y_test, pred)
-        rmse = mean_squared_error(y_test, pred, squared=False)
-        r2 = r2_score(y_test, pred)
+        mae = float(mean_absolute_error(y_test, pred))
+        rmse = float(np.sqrt(mean_squared_error(y_test, pred)))
+        r2 = float(r2_score(y_test, pred))
         results[name] = {"mae": mae, "rmse": rmse, "r2": r2}
         if mae < best_mae:
             best_mae = mae
             best_name = name
             best_model = pipe
 
-    with mlflow.start_run(run_name="delivery_eta"):
+    with mlflow.start_run(run_name="delivery_eta", nested=True):
         mlflow.log_metrics(results.get(best_name or "baseline_mean", {}))
         mlflow.log_param("best_model", best_name or "baseline_mean")
         if best_model is not None:
-            mlflow.sklearn.log_model(best_model, "delivery_eta_model")
+            mlflow.sklearn.log_model(best_model, "delivery_eta_model", serialization_format="cloudpickle")
 
     return {"best_model": best_name or "baseline_mean", "metrics": results.get(best_name or "baseline_mean", {})}
 

@@ -12,7 +12,8 @@ htmlcov/
 .DS_Store
 mlflow/
 mlflow.db
+mlruns/
 *.sqlite
-datasets/olist/*.csv
-datasets/olist/*.parquet
+data/raw/olist/*.csv
+data/cleared/*
 .dvc/

@@ -11,7 +11,7 @@ from typing import Any, Dict
 import mlflow
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 try:
@@ -26,7 +26,10 @@ try:
 except Exception:  # pragma: no cover
     HAS_LGBM = False
 
-from ml.features.build_order_features import build_order_features
+try:
+    from features import build_order_features
+except ImportError:
+    from ml.features import build_order_features
 
 
 def train_demand_forecast() -> Dict[str, Any]:
@@ -69,7 +72,7 @@ def train_demand_forecast() -> Dict[str, Any]:
     pred_naive = np.full_like(y_test, y_train[-1], dtype=float)
     results["naive"] = {
         "mae": float(mean_absolute_error(y_test, pred_naive)),
-        "rmse": float(mean_squared_error(y_test, pred_naive, squared=False)),
+        "rmse": float(np.sqrt(mean_squared_error(y_test, pred_naive))),
         "r2": float(0.0),
     }
 
@@ -78,10 +81,12 @@ def train_demand_forecast() -> Dict[str, Any]:
         m.fit(X_train, y_train)
         pred = m.predict(X_test)
         mae = float(mean_absolute_error(y_test, pred))
+        rmse = float(np.sqrt(mean_squared_error(y_test, pred)))
+        r2 = float(r2_score(y_test, pred))
         results["xgboost"] = {
             "mae": mae,
-            "rmse": float(mean_squared_error(y_test, pred, squared=False)),
-            "r2": float(mean_squared_error(y_test, pred, squared=False) and __import__("sklearn.metrics").r2_score(y_test, pred)),
+            "rmse": rmse,
+            "r2": r2,
         }
         if mae < best_mae:
             best_mae = mae
@@ -93,21 +98,23 @@ def train_demand_forecast() -> Dict[str, Any]:
         m.fit(X_train, y_train)
         pred = m.predict(X_test)
         mae = float(mean_absolute_error(y_test, pred))
+        rmse = float(np.sqrt(mean_squared_error(y_test, pred)))
+        r2 = float(r2_score(y_test, pred))
         results["lightgbm"] = {
             "mae": mae,
-            "rmse": float(mean_squared_error(y_test, pred, squared=False)),
-            "r2": float(__import__("sklearn.metrics").r2_score(y_test, pred)),
+            "rmse": rmse,
+            "r2": r2,
         }
         if mae < best_mae:
             best_mae = mae
             best_name = "lightgbm"
             best_model = m
 
-    with mlflow.start_run(run_name="demand_forecast"):
+    with mlflow.start_run(run_name="demand_forecast", nested=True):
         mlflow.log_metrics(results.get(best_name, {}))
         mlflow.log_param("best_model", best_name)
         if best_model is not None:
-            mlflow.sklearn.log_model(best_model, "demand_forecast_model")
+            mlflow.sklearn.log_model(best_model, "demand_forecast_model", serialization_format="cloudpickle")
 
     return {"best_model": best_name, "metrics": results.get(best_name, {})}
 

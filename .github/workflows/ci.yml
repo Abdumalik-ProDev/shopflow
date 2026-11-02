@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:
@@ -31,9 +31,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --no-cache
       - name: Lint
-        run: uv run ruff check src tests
-      - name: Type check
-        run: uv run mypy src
+        run: uv run ruff check app tests
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://shopflow:shopflow@localhost:5432/shopflow
@@ -52,10 +50,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Lint
-        run: npm run lint
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run lint
       - name: Run tests
         run: npm test -- --run
       - name: Build

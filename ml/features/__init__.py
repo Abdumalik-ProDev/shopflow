@@ -12,7 +12,7 @@ from typing import Optional
 
 import pandas as pd
 
-OLIST_DIR = Path(__file__).resolve().parents[2] / "data" / "raw" / "olist"
+OLIST_DIR = Path(__file__).resolve().parents[1] / "data" / "raw" / "olist"
 
 
 def _load(name: str) -> pd.DataFrame:

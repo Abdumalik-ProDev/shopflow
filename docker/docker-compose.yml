@@ -74,7 +74,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
-    command: ["uv", "run", "python", "scripts/seed_olist.py", "--data-dir", "/app/ml_data", "--limit", "5000"]
+    command: ["python", "scripts/seed_olist.py", "--data-dir", "/app/ml_data", "--limit", "5000"]
     environment:
       DATABASE_URL: postgresql+asyncpg://shopflow:shopflow@db:5432/shopflow
     volumes:

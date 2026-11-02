@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import mlflow
 
-from ml.pipelines.recommendation_pipeline import train_recommendation_model
+try:
+    from pipelines.recommendation_pipeline import train_recommendation_model
+except ImportError:
+    from ml.pipelines.recommendation_pipeline import train_recommendation_model
 
 
 def main() -> None:
