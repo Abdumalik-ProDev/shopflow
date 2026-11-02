@@ -13,8 +13,10 @@ from app.dtos.order import (
 from app.dtos.payment import PaymentCreateRequest, PaymentResponse
 from app.dtos.review import ReviewCreateRequest, ReviewResponse
 from app.mappers.mappers import order_to_dto, payment_to_dto, review_to_dto
+from app.models.customer import Customer
 from app.models.payment import Payment
 from app.models.review import Review
+from app.repositories.customer_repository import CustomerRepository
 from app.repositories.order_repository import OrderRepository
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.review_repository import ReviewRepository
@@ -26,11 +28,45 @@ class OrderService:
         self.order_repo = OrderRepository(session)
         self.payment_repo = PaymentRepository(session)
         self.review_repo = ReviewRepository(session)
+        self.customer_repo = CustomerRepository(session)
 
     async def create_order(self, req: OrderCreateRequest) -> OrderResponse:
+        cust_uuid = None
+        if req.customer_id:
+            try:
+                parsed = uuid.UUID(req.customer_id)
+                existing = await self.customer_repo.get_by_id(parsed)
+                if existing:
+                    cust_uuid = existing.id
+                else:
+                    by_user = await self.customer_repo.get_by_user_id(parsed)
+                    if by_user:
+                        cust_uuid = by_user.id
+                    else:
+                        cust_uuid = parsed
+            except ValueError:
+                cust = await self.customer_repo.get_by_unique_id(req.customer_id)
+                if cust:
+                    cust_uuid = cust.id
+                else:
+                    new_cust = Customer(
+                        customer_unique_id=req.customer_id,
+                        customer_zip_code_prefix="00000",
+                        customer_city="Marketplace",
+                        customer_state="BR",
+                    )
+                    created_cust = await self.customer_repo.create(new_cust)
+                    cust_uuid = created_cust.id
+
+        if cust_uuid is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid customer identification for order creation",
+            )
+
         items_payload = [it.model_dump() for it in req.items]
         order = await self.order_repo.create(
-            customer_id=uuid.UUID(req.customer_id),
+            customer_id=cust_uuid,
             items_data=items_payload,
             estimated_delivery_date=req.estimated_delivery_date,
         )
@@ -52,7 +88,24 @@ class OrderService:
         customer_id: str | None = None,
         status_filter: str | None = None,
     ) -> list[OrderResponse]:
-        cust_uuid = uuid.UUID(customer_id) if customer_id else None
+        cust_uuid = None
+        if customer_id:
+            try:
+                parsed = uuid.UUID(customer_id)
+                existing = await self.customer_repo.get_by_id(parsed)
+                if existing:
+                    cust_uuid = existing.id
+                else:
+                    by_user = await self.customer_repo.get_by_user_id(parsed)
+                    if by_user:
+                        cust_uuid = by_user.id
+                    else:
+                        cust_uuid = parsed
+            except ValueError:
+                cust = await self.customer_repo.get_by_unique_id(customer_id)
+                if cust:
+                    cust_uuid = cust.id
+
         orders = await self.order_repo.list_orders(
             skip=skip, limit=limit, customer_id=cust_uuid, status=status_filter
         )

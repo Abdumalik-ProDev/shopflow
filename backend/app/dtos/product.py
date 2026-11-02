@@ -47,3 +47,7 @@ class ProductResponse(BaseModel):
     photos_qty: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class StockAdjustRequest(BaseModel):
+    delta: int = 0

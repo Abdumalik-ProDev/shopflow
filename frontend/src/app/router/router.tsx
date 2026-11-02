@@ -32,14 +32,10 @@ const router = createBrowserRouter([
       { path: "seller", element: <MainLayout><SellerDashboardPage /></MainLayout> },
       { path: "admin", element: <AdminLayout><AdminDashboardPage /></AdminLayout> },
       { path: "recommendations", element: <MainLayout><RecommendationsPage /></MainLayout> },
-    ],
-  },
-  {
-    path: "auth",
-    element: <AuthLayout title="Welcome back" subtitle="Sign in to your ShopFlow account" action="Create an account" actionHref="/auth/register" actionLabel="Don't have an account? " />,
-    children: [
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
+      { path: "auth/login", element: <LoginPage /> },
+      { path: "auth/register", element: <RegisterPage /> },
     ],
   },
 ] as unknown as RouteObject[]);

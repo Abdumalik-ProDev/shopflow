@@ -51,19 +51,31 @@ export default function CatalogPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.map((product) => (
-          <Card key={product.id} className="group hover:shadow-md transition">
-            <div className="aspect-square bg-charcoal-100 rounded-lg mb-4 flex items-center justify-center">
-              <Tag className="w-12 h-12 text-charcoal-400" />
+          <Card key={product.id} className="group hover:shadow-md transition flex flex-col justify-between">
+            <div>
+              <Link to={`/product/${product.id}`} className="block">
+                <div className="aspect-square bg-charcoal-100 rounded-lg mb-4 flex items-center justify-center group-hover:bg-charcoal-200 transition">
+                  <Tag className="w-12 h-12 text-charcoal-400 group-hover:text-indigo-600 transition" />
+                </div>
+              </Link>
+              <CardHeader className="pt-0">
+                <div className="flex items-start justify-between gap-2">
+                  <Link to={`/product/${product.id}`}>
+                    <CardTitle className="text-lg hover:text-indigo-600 transition line-clamp-1">
+                      {product.name}
+                    </CardTitle>
+                  </Link>
+                  <Badge variant="outline" className="font-semibold text-charcoal-900 shrink-0">
+                    ${product.price.toFixed(2)}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="text-charcoal-600 text-sm line-clamp-2">
+                {product.description || "Authentic marketplace item from verified sellers."}
+              </CardContent>
             </div>
-            <CardHeader>
-              <CardTitle className="text-lg">{product.name}</CardTitle>
-              <Badge variant="outline">${product.price.toFixed(2)}</Badge>
-            </CardHeader>
-            <CardContent className="text-charcoal-600 text-sm line-clamp-2">
-              {product.description || "No description available."}
-            </CardContent>
-            <CardFooter className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-charcoal-900">
+            <CardFooter className="flex items-center justify-between gap-2 border-t border-charcoal-100 pt-3">
+              <span className="text-sm font-medium text-charcoal-600">
                 Stock: {product.stock_quantity}
               </span>
               <Button
@@ -77,7 +89,7 @@ export default function CatalogPage() {
                 }
                 disabled={!product.is_active || product.stock_quantity === 0}
               >
-                <ShoppingCart className="w-4 h-4" /> Add
+                <ShoppingCart className="w-4 h-4 mr-1" /> Add
               </Button>
             </CardFooter>
           </Card>

@@ -58,10 +58,19 @@ async def test_category_and_product_crud(client: AsyncClient, auth_headers: dict
     assert update_res.json()["price"] == 129.99
     assert update_res.json()["name"] == "Wireless ANC Headphones"
 
-    # 6. Adjust Stock
+    # 6. Adjust Stock via query param
     stock_res = await client.post(
         f"/api/products/{prod_id}/stock?delta=-5",
         headers=auth_headers,
     )
     assert stock_res.status_code == 200
     assert stock_res.json()["stock_quantity"] == 45
+
+    # 7. Adjust Stock via JSON body
+    stock_body_res = await client.post(
+        f"/api/products/{prod_id}/stock",
+        json={"delta": 10},
+        headers=auth_headers,
+    )
+    assert stock_body_res.status_code == 200
+    assert stock_body_res.json()["stock_quantity"] == 55

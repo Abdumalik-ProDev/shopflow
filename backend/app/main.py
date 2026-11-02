@@ -3,6 +3,7 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,15 +11,25 @@ from app.controllers import api_router
 from app.core.config import settings
 from app.core.database import Base, engine
 
+logger = structlog.get_logger()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    # Initialize database tables on startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Initialize database tables on startup if database is available
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print(f"[{settings.APP_NAME}] Database tables verified successfully.")
+    except Exception as exc:
+        print(f"[{settings.APP_NAME}] Warning: Database connection failed during startup: {exc}")
+        print(f"[{settings.APP_NAME}] Server running. Verify DATABASE_URL or start PostgreSQL.")
     yield
     # Cleanup database engine on shutdown
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(

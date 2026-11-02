@@ -6,6 +6,9 @@ from pydantic import BaseModel, ConfigDict
 
 class ProductRecommendationResponse(BaseModel):
     product_id: str
+    product_name: str | None = None
+    price: float = 0.0
+    category_name: str | None = None
     score: float
     reason: str
 

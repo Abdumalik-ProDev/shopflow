@@ -97,3 +97,30 @@ async def test_order_creation_and_lifecycle(client: AsyncClient, auth_headers: d
     )
     assert rev_res.status_code == 201
     assert rev_res.json()["review_score"] == 5
+
+    # 8. Guest Checkout without Auth Header
+    guest_order = await client.post(
+        "/api/orders",
+        json={
+            "customer_id": "guest-customer",
+            "items": [
+                {
+                    "product_id": product_id,
+                    "seller_id": "seller-001",
+                    "price": 49.99,
+                    "freight_value": 0.0,
+                    "quantity": 1,
+                }
+            ],
+        },
+    )
+    assert guest_order.status_code == 201
+    assert guest_order.json()["status"] == "pending"
+
+    # 9. Update Customer via PATCH
+    cust_patch = await client.patch(
+        f"/api/customers/{customer_id}",
+        json={"customer_city": "Campinas", "customer_state": "SP"},
+    )
+    assert cust_patch.status_code == 200
+    assert cust_patch.json()["customer_city"] == "Campinas"

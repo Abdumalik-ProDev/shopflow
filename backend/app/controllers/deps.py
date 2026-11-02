@@ -13,6 +13,7 @@ from app.security.security import decode_token
 from app.services.auth_service import AuthService
 
 bearer_scheme = HTTPBearer(auto_error=True)
+optional_bearer_scheme = HTTPBearer(auto_error=False)
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -51,4 +52,26 @@ async def get_current_user(
     return user
 
 
+async def get_optional_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(optional_bearer_scheme)],
+    session: SessionDep,
+) -> User | None:
+    if credentials is None or not credentials.credentials:
+        return None
+    token = credentials.credentials
+    payload = decode_token(token)
+    if not payload:
+        return None
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        return None
+    try:
+        user_uuid = uuid.UUID(user_id_str)
+        auth_service = AuthService(session)
+        return await auth_service.get_user_by_id(user_uuid)
+    except Exception:
+        return None
+
+
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+OptionalUserDep = Annotated[User | None, Depends(get_optional_current_user)]

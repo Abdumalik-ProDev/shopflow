@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { me, User } from "@/features/auth/api/auth";
 
 interface AuthContextType {
   token: string | null;
-  user: any | null;
-  login: (token: string) => void;
+  user: User | null;
+  login: (token: string, user?: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -17,18 +18,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (token) {
       localStorage.setItem("shopflow_token", token);
+      me()
+        .then((u) => setUser(u))
+        .catch(() => {
+          localStorage.removeItem("shopflow_token");
+          setToken(null);
+          setUser(null);
+        });
     } else {
       localStorage.removeItem("shopflow_token");
+      setUser(null);
     }
   }, [token]);
 
-  const login = (t: string) => setToken(t);
+  const login = (t: string, u?: User) => {
+    localStorage.setItem("shopflow_token", t);
+    if (u) setUser(u);
+    setToken(t);
+  };
+
   const logout = () => {
+    localStorage.removeItem("shopflow_token");
     setToken(null);
     setUser(null);
   };

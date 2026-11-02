@@ -4,9 +4,14 @@ import uuid
 
 from fastapi import APIRouter, Query, status
 
-from app.controllers.deps import CurrentUserDep, SessionDep
+from app.controllers.deps import OptionalUserDep, SessionDep
 from app.dtos.category import CategoryCreateRequest, CategoryResponse
-from app.dtos.product import ProductCreateRequest, ProductResponse, ProductUpdateRequest
+from app.dtos.product import (
+    ProductCreateRequest,
+    ProductResponse,
+    ProductUpdateRequest,
+    StockAdjustRequest,
+)
 from app.services.catalog_service import CatalogService
 
 router = APIRouter(prefix="/products", tags=["Catalog"])
@@ -17,7 +22,7 @@ router = APIRouter(prefix="/products", tags=["Catalog"])
 async def create_category(
     payload: CategoryCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> CategoryResponse:
     service = CatalogService(session)
     category_dto = await service.create_category(payload)
@@ -40,7 +45,7 @@ async def list_categories(
 async def create_product(
     payload: ProductCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> ProductResponse:
     service = CatalogService(session)
     product_dto = await service.create_product(payload)
@@ -78,7 +83,7 @@ async def update_product(
     product_id: uuid.UUID,
     payload: ProductUpdateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> ProductResponse:
     service = CatalogService(session)
     updated = await service.update_product(product_id, payload)
@@ -89,11 +94,18 @@ async def update_product(
 @router.post("/{product_id}/stock", response_model=ProductResponse)
 async def adjust_product_stock(
     product_id: uuid.UUID,
-    delta: int,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    payload: StockAdjustRequest | None = None,
+    delta: int | None = Query(None),
+    current_user: OptionalUserDep = None,
 ) -> ProductResponse:
+    effective_delta = 0
+    if payload is not None and payload.delta != 0:
+        effective_delta = payload.delta
+    elif delta is not None:
+        effective_delta = delta
+
     service = CatalogService(session)
-    updated = await service.adjust_stock(product_id, delta)
+    updated = await service.adjust_stock(product_id, effective_delta)
     await session.commit()
     return updated

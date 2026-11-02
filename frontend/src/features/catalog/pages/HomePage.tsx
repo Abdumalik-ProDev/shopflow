@@ -34,7 +34,7 @@ export default function HomePage() {
             <Link to="/catalog">Shop catalog</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/">Learn more</Link>
+            <Link to="/recommendations">Explore ML Recommendations</Link>
           </Button>
         </div>
       </div>

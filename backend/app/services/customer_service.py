@@ -5,7 +5,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dtos.customer import CustomerCreateRequest, CustomerResponse
+from app.dtos.customer import CustomerCreateRequest, CustomerResponse, CustomerUpdateRequest
 from app.mappers.mappers import customer_to_dto
 from app.models.customer import Customer
 from app.repositories.customer_repository import CustomerRepository
@@ -30,14 +30,56 @@ class CustomerService:
         created = await self.customer_repo.create(cust)
         return customer_to_dto(created)
 
-    async def get_customer(self, customer_id: uuid.UUID) -> CustomerResponse:
-        cust = await self.customer_repo.get_by_id(customer_id)
+    async def get_customer(self, customer_id: uuid.UUID | str) -> CustomerResponse:
+        cust = None
+        if isinstance(customer_id, uuid.UUID):
+            cust = await self.customer_repo.get_by_id(customer_id)
+            if not cust:
+                cust = await self.customer_repo.get_by_user_id(customer_id)
+        else:
+            try:
+                parsed_uuid = uuid.UUID(str(customer_id))
+                cust = await self.customer_repo.get_by_id(parsed_uuid)
+                if not cust:
+                    cust = await self.customer_repo.get_by_user_id(parsed_uuid)
+            except ValueError:
+                cust = await self.customer_repo.get_by_unique_id(str(customer_id))
+
         if not cust:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Customer not found",
             )
         return customer_to_dto(cust)
+
+    async def update_customer(
+        self, customer_id: uuid.UUID | str, req: CustomerUpdateRequest
+    ) -> CustomerResponse:
+        cust = None
+        if isinstance(customer_id, uuid.UUID):
+            cust = await self.customer_repo.get_by_id(customer_id)
+            if not cust:
+                cust = await self.customer_repo.get_by_user_id(customer_id)
+        else:
+            try:
+                parsed_uuid = uuid.UUID(str(customer_id))
+                cust = await self.customer_repo.get_by_id(parsed_uuid)
+                if not cust:
+                    cust = await self.customer_repo.get_by_user_id(parsed_uuid)
+            except ValueError:
+                cust = await self.customer_repo.get_by_unique_id(str(customer_id))
+
+        if not cust:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Customer not found",
+            )
+        update_data = req.model_dump(exclude_unset=True)
+        for key, val in update_data.items():
+            if val is not None:
+                setattr(cust, key, val)
+        updated = await self.customer_repo.update(cust)
+        return customer_to_dto(updated)
 
     async def list_customers(self, skip: int = 0, limit: int = 100) -> list[CustomerResponse]:
         customers = await self.customer_repo.list_all(skip=skip, limit=limit)

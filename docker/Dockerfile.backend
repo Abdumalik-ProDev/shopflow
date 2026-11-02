@@ -2,7 +2,7 @@
 
 FROM python:3.13-slim AS builder
 
-WORKDIR /app
+WORKDIR /app/backend
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,13 +11,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN pip install --no-cache-dir uv
 
-COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./backend/
-RUN uv sync --frozen --no-cache --no-dev --project backend
+COPY backend/pyproject.toml backend/uv.lock backend/.python-version ./
+RUN uv sync --frozen --no-cache --no-dev
 
-COPY backend/app ./backend/app
-COPY backend/scripts ./backend/scripts
-COPY backend/alembic ./backend/alembic
-COPY backend/alembic.ini ./backend/
+COPY backend/app ./app
+COPY backend/scripts ./scripts
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini ./
 
 ENV PATH="/app/backend/.venv/bin:$PATH"
 ENV PYTHONPATH=/app/backend

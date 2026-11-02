@@ -27,6 +27,9 @@ export const analyticsApi = {
 
 export interface Recommendation {
   product_id: string;
+  product_name?: string;
+  price?: number;
+  category_name?: string;
   score: number;
   reason: string;
 }

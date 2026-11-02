@@ -40,15 +40,54 @@ export default function AdminDashboardPage() {
         <StatCard label="Conversion" value={get("Conversion Rate")} suffix="%" icon={<Activity className="w-5 h-5 text-white" />} />
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-charcoal-900 mb-4">Sales over time</h2>
-        <div className="bg-charcoal-100 rounded-xl p-6 h-64">
-          {summary?.sales_over_time?.length ? (
-            <div className="text-sm text-charcoal-500">Chart data available ({summary.sales_over_time.length} days).</div>
-          ) : (
-            <div className="text-sm text-charcoal-500">No sales data yet.</div>
-          )}
+      <div className="mt-8 bg-white p-6 rounded-2xl border border-charcoal-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-charcoal-900">Recent Marketplace Sales Trend</h2>
+            <p className="text-xs text-charcoal-500">Aggregated daily revenue from live orders</p>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {summary?.sales_over_time?.length || 0} Total Reporting Days
+          </Badge>
         </div>
+
+        {summary?.sales_over_time?.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-charcoal-100 text-xs font-semibold text-charcoal-500 uppercase tracking-wider">
+                  <th className="py-2.5 px-3">Date</th>
+                  <th className="py-2.5 px-3">Orders</th>
+                  <th className="py-2.5 px-3 text-right">Daily Revenue</th>
+                  <th className="py-2.5 px-3 text-right">Volume Activity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-charcoal-100">
+                {summary.sales_over_time.slice(-10).reverse().map((point: any) => (
+                  <tr key={point.date} className="hover:bg-cream-50 transition">
+                    <td className="py-2.5 px-3 font-medium text-charcoal-900">{point.date}</td>
+                    <td className="py-2.5 px-3 text-charcoal-700">{point.orders} orders</td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-charcoal-900">
+                      ${Number(point.sales).toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="inline-block w-24 bg-charcoal-100 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, Math.max(15, (point.orders / 5) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-sm text-charcoal-500 py-10 text-center">No sales data recorded yet.</div>
+        )}
       </div>
     </div>
   );

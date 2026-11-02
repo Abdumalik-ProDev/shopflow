@@ -80,6 +80,8 @@ services:
     volumes:
       - ../ml/data/raw/olist:/app/ml_data:ro
     depends_on:
+      db:
+        condition: service_healthy
       backend:
         condition: service_started
     restart: "no"

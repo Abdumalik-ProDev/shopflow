@@ -26,6 +26,7 @@ export interface User {
 export interface TokenResponse {
   access_token: string;
   token_type: string;
+  user?: User;
 }
 
 export async function login(data: LoginRequest): Promise<TokenResponse> {
@@ -40,5 +41,13 @@ export async function register(data: RegisterRequest): Promise<User> {
 
 export async function me(): Promise<User> {
   const res = await api.get<User>("/auth/me");
+  return res.data;
+}
+
+export async function changePassword(data: {
+  current_password: string;
+  new_password: string;
+}): Promise<{ message: string }> {
+  const res = await api.post<{ message: string }>("/auth/change-password", data);
   return res.data;
 }

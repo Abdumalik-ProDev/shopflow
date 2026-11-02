@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, Query, status
 
-from app.controllers.deps import CurrentUserDep, SessionDep
+from app.controllers.deps import OptionalUserDep, SessionDep
 from app.dtos.order import (
     OrderCreateRequest,
     OrderResponse,
@@ -22,7 +22,7 @@ router = APIRouter(tags=["Orders & Checkout"])
 async def create_order(
     payload: OrderCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> OrderResponse:
     service = OrderService(session)
     order_dto = await service.create_order(payload)
@@ -33,11 +33,11 @@ async def create_order(
 @router.get("/orders", response_model=list[OrderResponse])
 async def list_orders(
     session: SessionDep,
-    current_user: CurrentUserDep,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     customer_id: str | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
+    current_user: OptionalUserDep = None,
 ) -> list[OrderResponse]:
     service = OrderService(session)
     return await service.list_orders(
@@ -49,7 +49,7 @@ async def list_orders(
 async def get_order(
     order_id: uuid.UUID,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> OrderResponse:
     service = OrderService(session)
     return await service.get_order(order_id)
@@ -60,7 +60,7 @@ async def update_order_status(
     order_id: uuid.UUID,
     payload: OrderStatusUpdateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> OrderResponse:
     service = OrderService(session)
     order_dto = await service.update_status(order_id, payload)
@@ -73,7 +73,7 @@ async def update_order_status(
 async def create_payment(
     payload: PaymentCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> PaymentResponse:
     service = OrderService(session)
     payment_dto = await service.create_payment(payload)
@@ -85,7 +85,7 @@ async def create_payment(
 async def list_payments_by_order(
     order_id: uuid.UUID,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> list[PaymentResponse]:
     service = OrderService(session)
     return await service.list_payments_by_order(order_id)
@@ -96,7 +96,7 @@ async def list_payments_by_order(
 async def create_review(
     payload: ReviewCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> ReviewResponse:
     service = OrderService(session)
     review_dto = await service.create_review(payload)
@@ -108,7 +108,7 @@ async def create_review(
 async def list_reviews_by_order(
     order_id: uuid.UUID,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> list[ReviewResponse]:
     service = OrderService(session)
     return await service.list_reviews_by_order(order_id)

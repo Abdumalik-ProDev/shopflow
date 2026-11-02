@@ -3,8 +3,8 @@ import type { PropsWithChildren } from "react";
 
 export default function MainLayout({ children }: PropsWithChildren) {
   return (
-    <div className="container py-8">
-      {children}
+    <div className="w-full">
+      {children || <Outlet />}
     </div>
   );
 }

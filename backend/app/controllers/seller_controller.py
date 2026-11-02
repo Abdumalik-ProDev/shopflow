@@ -1,11 +1,9 @@
 """Seller controller router."""
 
-import uuid
-
 from fastapi import APIRouter, Query, status
 
-from app.controllers.deps import CurrentUserDep, SessionDep
-from app.dtos.seller import SellerCreateRequest, SellerResponse
+from app.controllers.deps import OptionalUserDep, SessionDep
+from app.dtos.seller import SellerCreateRequest, SellerResponse, SellerUpdateRequest
 from app.services.seller_service import SellerService
 
 router = APIRouter(prefix="/sellers", tags=["Sellers"])
@@ -15,7 +13,7 @@ router = APIRouter(prefix="/sellers", tags=["Sellers"])
 async def create_seller(
     payload: SellerCreateRequest,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> SellerResponse:
     service = SellerService(session)
     seller_dto = await service.create_seller(payload)
@@ -26,9 +24,9 @@ async def create_seller(
 @router.get("", response_model=list[SellerResponse])
 async def list_sellers(
     session: SessionDep,
-    current_user: CurrentUserDep,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    current_user: OptionalUserDep = None,
 ) -> list[SellerResponse]:
     service = SellerService(session)
     return await service.list_sellers(skip=skip, limit=limit)
@@ -36,9 +34,22 @@ async def list_sellers(
 
 @router.get("/{seller_id}", response_model=SellerResponse)
 async def get_seller(
-    seller_id: uuid.UUID,
+    seller_id: str,
     session: SessionDep,
-    current_user: CurrentUserDep,
+    current_user: OptionalUserDep = None,
 ) -> SellerResponse:
     service = SellerService(session)
     return await service.get_seller(seller_id)
+
+
+@router.patch("/{seller_id}", response_model=SellerResponse)
+async def update_seller(
+    seller_id: str,
+    payload: SellerUpdateRequest,
+    session: SessionDep,
+    current_user: OptionalUserDep = None,
+) -> SellerResponse:
+    service = SellerService(session)
+    updated = await service.update_seller(seller_id, payload)
+    await session.commit()
+    return updated

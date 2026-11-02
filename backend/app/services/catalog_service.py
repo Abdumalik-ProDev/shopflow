@@ -76,8 +76,21 @@ class CatalogService:
         seller_id: str | None = None,
         is_active: bool | None = True,
     ) -> list[ProductResponse]:
-        cat_uuid = uuid.UUID(category_id) if category_id else None
-        sell_uuid = uuid.UUID(seller_id) if seller_id else None
+        cat_uuid = None
+        if category_id:
+            try:
+                cat_uuid = uuid.UUID(category_id)
+            except ValueError:
+                cat = await self.category_repo.get_by_name(category_id)
+                if cat:
+                    cat_uuid = cat.id
+
+        sell_uuid = None
+        if seller_id:
+            try:
+                sell_uuid = uuid.UUID(seller_id)
+            except ValueError:
+                pass
         products = await self.product_repo.list_products(
             skip=skip, limit=limit, category_id=cat_uuid, seller_id=sell_uuid, is_active=is_active
         )
